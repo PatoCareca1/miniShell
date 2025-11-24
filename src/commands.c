@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>     // Para getcwd, chdir
-#include <sys/stat.h>   // Para mkdir
-#include <errno.h>      // Para códigos de erro extras
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
 #include "commands.h"
+#include <dirent.h>
+#include <time.h>
+#include <pwd.h>
+#include <grp.h>
 
 // --- IMPLEMENTAÇÃO ---
 
@@ -66,14 +70,94 @@ void cmd_cd(int argc, char *argv[]) {
     }
 }
 
+// --- Helpers Internos ---
 
-// --- MAPA DE COMANDOS ---
+void imprimir_permissões(mode_t mode) {
+    printf((S_ISDIR(mode)) ? "d" : "-");
+    printf((mode & S_IRUSR) ? "r" : "-");
+    printf((mode & S_IWUSR) ? "w" : "-");
+    printf((mode & S_IXUSR) ? "x" : "-");
+    printf((mode & S_IRGRP) ? "r" : "-");
+    printf((mode & S_IWGRP) ? "w" : "-");
+    printf((mode & S_IXGRP) ? "x" : "-");
+    printf((mode & S_IROTH) ? "r" : "-");
+    printf((mode & S_IWOTH) ? "w" : "-");
+    printf((mode & S_IXOTH) ? "x" : "-");
+}
+
+void imprimir_detalhes(const char *dir, const char *arquivo) {
+    char caminho_completo[1024];
+    struct stat st;
+    struct passwd *pwd;
+    struct group *grp;
+    char tempo[26];
+
+    // Monta o caminho completo para o stat funcionar
+    snprintf(caminho_completo, sizeof(caminho_completo), "%s/%s", dir, arquivo);
+
+    if (stat(caminho_completo, &st) == -1) return;
+
+    pwd = getpwuid(st.st_uid);
+    grp = getgrgid(st.st_gid);
+    
+    // Formata data e remove o \n final do ctime
+    ctime_r(&st.st_mtime, tempo);
+    tempo[strlen(tempo) - 1] = '\0';
+
+    imprimir_permissões(st.st_mode);
+    printf(" %ld", st.st_nlink);
+    printf(" %s", (pwd) ? pwd->pw_name : "user");
+    printf(" %s", (grp) ? grp->gr_name : "group");
+    printf(" %5ld", st.st_size);
+    printf(" %s", tempo);
+    printf(" %s\n", arquivo);
+}
+
+// --- Comando ls ---
+
+void cmd_ls(int argc, char *argv[]) {
+    DIR *d;
+    struct dirent *entry;
+    const char *diretorio = ".";
+    int mostrar_ocultos = 0; // -a
+    int mostrar_detalhes = 0; // -l
+
+    // Parse simples de argumentos
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-a") == 0) mostrar_ocultos = 1;
+        else if (strcmp(argv[i], "-l") == 0) mostrar_detalhes = 1;
+        else if (argv[i][0] != '-') diretorio = argv[i];
+    }
+
+    d = opendir(diretorio);
+    if (!d) {
+        perror("mini-shell: ls");
+        return;
+    }
+
+    while ((entry = readdir(d)) != NULL) {
+        // Pula ocultos se não tiver flag -a
+        if (!mostrar_ocultos && entry->d_name[0] == '.') continue;
+
+        if (mostrar_detalhes) {
+            imprimir_detalhes(diretorio, entry->d_name);
+        } else {
+            printf("%s  ", entry->d_name);
+        }
+    }
+    
+    if (!mostrar_detalhes) printf("\n");
+    closedir(d);
+}
+
+// --- Mapa de Comandos ---
 
 static const Comando mapa_de_comandos[] = {
     { "exit",  cmd_exit,  "Sai do mini-shell" },
     { "pwd",   cmd_pwd,   "Mostra o diretorio atual" },
     { "mkdir", cmd_mkdir, "Cria um diretorio" },
     { "cd",    cmd_cd,    "Muda de diretorio" },
+    { "ls",    cmd_ls,    "Lista arquivos (use -a ou -l)" },
 };
 
 static const int NUM_COMANDOS = sizeof(mapa_de_comandos) / sizeof(Comando);

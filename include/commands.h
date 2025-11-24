@@ -10,10 +10,10 @@ typedef struct {
 } Comando;
 
 // --- Funções de Comando ---
-
 void cmd_exit(int argc, char *argv[]);
 void cmd_pwd(int argc, char *argv[]);
 void cmd_mkdir(int argc, char *argv[]);
 void cmd_cd(int argc, char *argv[]);
+void cmd_ls(int argc, char *argv[]);
 
 #endif
