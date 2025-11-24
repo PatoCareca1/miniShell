@@ -14,9 +14,8 @@ CFLAGS = -Wall -g -Iinclude
 SRCS = $(wildcard src/*.c)
 
 # Define o nome dos ficheiros objeto (compilados) na pasta obj/
-# (Substitui 'src/' por 'obj/' e '.c' por '.o')
 OBJ_DIR = obj
-OBJS = $(patsubstitst src/%.c, $(OBJ_DIR)/%.o, $(SRCS))
+OBJS = $(patsubst src/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
 # O 'alvo' principal: o que acontece quando escreves 'make'
 all: $(TARGET)

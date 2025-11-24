@@ -4,7 +4,7 @@
 void ui_mostrar_boas_vindas(void) {
     printf("========================================\n");
     printf("==                                    ==\n");
-    printf("==   BEM-VINDO AO MEU SUPER PROGRAMA  ==\n");
+    printf("==       BEM-VINDO AO miniShell       ==\n");
     printf("==                                    ==\n");
     printf("========================================\n");
     printf("Digite 'ajuda' para ver os comandos.\n\n");

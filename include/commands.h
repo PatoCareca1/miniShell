@@ -1,24 +1,25 @@
 #ifndef COMMANDS_H
 #define COMMANDS_H
 
-// Definição da estrutura de um comando
+// O nosso "processador" de comandos agora recebe argc e argv
+void comandos_executar(int argc, char *argv[]);
+
+// --- Definição da Estrutura de Comando ---
+// A função agora deve aceitar argc e argv
 typedef struct {
-    const char *nome;          // O nome que o utilizador digita
-    void (*funcao)(void);      // Ponteiro para a função a executar
-    const char *descricao;     // Descrição para o menu 'ajuda'
+    const char *nome;
+    void (*funcao)(int argc, char *argv[]);
+    const char *descricao;
 } Comando;
 
 
-// Função principal que recebe o input do utilizador e decide o que fazer
-void comandos_executar(const char *input);
+// --- Funções de Comando (Built-ins) ---
+// (Estas são as funções que serão chamadas)
 
-// Função que será chamada pelo comando 'ajuda'
-void cmd_ajuda(void);
+// Comando 'exit' 
+void cmd_exit(int argc, char *argv[]);
 
-// Função que será chamada pelo comando 'sair'
-void cmd_sair(void);
+// Comando 'pwd'
+void cmd_pwd(int argc, char *argv[]);
 
-// (PODES ADICIONAR MAIS FUNÇÕES DE COMANDO AQUI)
-// Ex: void cmd_listar_utilizadores(void);
-
-#endif // COMMANDS_H
+#endif
