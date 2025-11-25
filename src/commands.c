@@ -9,6 +9,8 @@
 #include <time.h>
 #include <pwd.h>
 #include <grp.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 // --- IMPLEMENTAÇÃO ---
 
@@ -150,6 +152,98 @@ void cmd_ls(int argc, char *argv[]) {
     closedir(d);
 }
 
+// --- Comandos de Manipulação de Ficheiros ---
+
+/**
+ * @brief Remove um diretório vazio.
+ * Syscall: rmdir
+ */
+void cmd_rmdir(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Uso: rmdir <diretorio>\n");
+        return;
+    }
+    if (rmdir(argv[1]) != 0) {
+        perror("mini-shell: rmdir");
+    }
+}
+
+/**
+ * @brief Remove um arquivo.
+ * Syscall: unlink
+ */
+void cmd_rm(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Uso: rm <arquivo>\n");
+        return;
+    }
+    // unlink é a syscall para remover o "link" do arquivo (apagá-lo)
+    if (unlink(argv[1]) != 0) {
+        perror("mini-shell: rm");
+    }
+}
+
+/**
+ * @brief Move ou renomeia arquivos/diretórios.
+ * Syscall: rename
+ */
+void cmd_mv(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Uso: mv <origem> <destino>\n");
+        return;
+    }
+    // rename funciona tanto para mover como para renomear
+    if (rename(argv[0+1], argv[2]) != 0) { // argv[1] é origem, argv[2] é destino
+        perror("mini-shell: mv");
+    }
+}
+
+/**
+ * @brief Copia um arquivo (byte a byte).
+ * Syscalls: open, read, write, close
+ */
+void cmd_cp(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Uso: cp <origem> <destino>\n");
+        return;
+    }
+
+    int fd_origem, fd_destino;
+    char buffer[4096]; // Buffer de 4KB para transferência
+    ssize_t bytes_lidos;
+
+    // 1. Abrir origem para leitura
+    fd_origem = open(argv[1], O_RDONLY);
+    if (fd_origem == -1) {
+        perror("mini-shell: cp (abrir origem)");
+        return;
+    }
+
+    // 2. Abrir/Criar destino para escrita
+    // O_CREAT: cria se não existir
+    // O_WRONLY: apenas escrita
+    // O_TRUNC: apaga o conteúdo anterior se já existir
+    // 0644: permissões rw-r--r--
+    fd_destino = open(argv[2], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (fd_destino == -1) {
+        perror("mini-shell: cp (criar destino)");
+        close(fd_origem);
+        return;
+    }
+
+    // 3. Loop de cópia
+    while ((bytes_lidos = read(fd_origem, buffer, sizeof(buffer))) > 0) {
+        if (write(fd_destino, buffer, bytes_lidos) != bytes_lidos) {
+            perror("mini-shell: cp (erro de escrita)");
+            break;
+        }
+    }
+
+    // 4. Fechar descritores
+    close(fd_origem);
+    close(fd_destino);
+}
+
 // --- Mapa de Comandos ---
 
 static const Comando mapa_de_comandos[] = {
@@ -157,7 +251,11 @@ static const Comando mapa_de_comandos[] = {
     { "pwd",   cmd_pwd,   "Mostra o diretorio atual" },
     { "mkdir", cmd_mkdir, "Cria um diretorio" },
     { "cd",    cmd_cd,    "Muda de diretorio" },
-    { "ls",    cmd_ls,    "Lista arquivos (use -a ou -l)" },
+    { "ls",    cmd_ls,    "Lista arquivos" },
+    { "rmdir", cmd_rmdir, "Remove diretorio vazio" },
+    { "rm",    cmd_rm,    "Remove arquivo" },
+    { "mv",    cmd_mv,    "Move ou renomeia" },
+    { "cp",    cmd_cp,    "Copia arquivo" },
 };
 
 static const int NUM_COMANDOS = sizeof(mapa_de_comandos) / sizeof(Comando);
