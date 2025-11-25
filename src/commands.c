@@ -244,18 +244,132 @@ void cmd_cp(int argc, char *argv[]) {
     close(fd_destino);
 }
 
+// --- Comandos de Processamento de Texto ---
+
+/**
+ * @brief Exibe o conteúdo de um arquivo.
+ * Usa syscalls read/write para eficiência e demonstração.
+ */
+void cmd_cat(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Uso: cat <arquivo>\n");
+        return;
+    }
+
+    int fd = open(argv[1], O_RDONLY);
+    if (fd == -1) {
+        perror("mini-shell: cat");
+        return;
+    }
+
+    char buffer[4096];
+    ssize_t lidos;
+
+    while ((lidos = read(fd, buffer, sizeof(buffer))) > 0) {
+        write(STDOUT_FILENO, buffer, lidos); // Escreve direto na saída padrão
+    }
+
+    close(fd);
+}
+
+/**
+ * @brief Busca uma string dentro de um arquivo.
+ * Usa fgets para leitura linha a linha.
+ */
+void cmd_grep(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Uso: grep <termo> <arquivo>\n"); // [cite: 21]
+        return;
+    }
+
+    const char *termo = argv[1];
+    const char *arquivo = argv[2];
+
+    FILE *fp = fopen(arquivo, "r");
+    if (!fp) {
+        perror("mini-shell: grep");
+        return;
+    }
+
+    char linha[1024];
+    while (fgets(linha, sizeof(linha), fp)) {
+        // strstr retorna ponteiro se encontrar a substring, NULL se não
+        if (strstr(linha, termo) != NULL) {
+            printf("%s", linha);
+        }
+    }
+
+    fclose(fp);
+}
+
+// Helper para o qsort do comando sort
+int comparar_linhas(const void *a, const void *b) {
+    // Cast para ponteiros de strings
+    const char *str_a = *(const char **)a;
+    const char *str_b = *(const char **)b;
+    return strcmp(str_a, str_b);
+}
+
+/**
+ * @brief Lê um arquivo, ordena as linhas e imprime.
+ * Limitação: Máximo 1000 linhas de 1024 chars para simplicidade.
+ */
+void cmd_sort(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Uso: sort <arquivo>\n"); // [cite: 21]
+        return;
+    }
+
+    FILE *fp = fopen(argv[1], "r");
+    if (!fp) {
+        perror("mini-shell: sort");
+        return;
+    }
+
+    // Array de ponteiros para as linhas
+    char *linhas[1000]; 
+    int count = 0;
+    char buffer[1024];
+
+    // 1. Carregar arquivo para memória
+    while (fgets(buffer, sizeof(buffer), fp) && count < 1000) {
+        linhas[count] = strdup(buffer); // Aloca memória para a linha
+        if (linhas[count]) count++;
+    }
+    fclose(fp);
+
+    // 2. Ordenar usando Quick Sort (função padrão do C)
+    qsort(linhas, count, sizeof(char *), comparar_linhas);
+
+    // 3. Imprimir e libertar memória
+    for (int i = 0; i < count; i++) {
+        printf("%s", linhas[i]);
+        free(linhas[i]); // Importante: liberar o que o strdup alocou
+    }
+}
+
 // --- Mapa de Comandos ---
 
 static const Comando mapa_de_comandos[] = {
+    // Sistema
     { "exit",  cmd_exit,  "Sai do mini-shell" },
     { "pwd",   cmd_pwd,   "Mostra o diretorio atual" },
-    { "mkdir", cmd_mkdir, "Cria um diretorio" },
     { "cd",    cmd_cd,    "Muda de diretorio" },
-    { "ls",    cmd_ls,    "Lista arquivos" },
+    
+    // Gestão de Diretórios
+    { "mkdir", cmd_mkdir, "Cria um diretorio" },
     { "rmdir", cmd_rmdir, "Remove diretorio vazio" },
-    { "rm",    cmd_rm,    "Remove arquivo" },
-    { "mv",    cmd_mv,    "Move ou renomeia" },
+    { "ls",    cmd_ls,    "Lista arquivos" },
+    
+    // Gestão de Arquivos
     { "cp",    cmd_cp,    "Copia arquivo" },
+    { "mv",    cmd_mv,    "Move ou renomeia" },
+    { "rm",    cmd_rm,    "Remove arquivo" },
+    
+    // Processamento de Texto
+    { "cat",   cmd_cat,   "Mostra conteudo do arquivo" },
+    { "grep",  cmd_grep,  "Busca texto em arquivo" },
+    { "sort",  cmd_sort,  "Ordena conteudo do arquivo" },
 };
 
 static const int NUM_COMANDOS = sizeof(mapa_de_comandos) / sizeof(Comando);
