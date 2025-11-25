@@ -203,7 +203,63 @@ void cmd_cp(int argc, char *argv[]) {
     close(fd_destino);
 }
 
+// Syscalls: open, close (com O_CREAT)
+void cmd_touch(int argc, char *argv[]) {
+    if (argc < 2) {
+        printf("Uso: touch <arquivo>\n");
+        return;
+    }
+
+    int fd = open(argv[1], O_CREAT | O_WRONLY, 0644);
+    
+    if (fd == -1) {
+        perror("mini-shell: touch");
+    } else {
+        close(fd);
+    }
+}
+
 // --- PROCESSAMENTO DE TEXTO ---
+
+// Syscalls: write, open, close (Suporta flag -n e redirecionamento >)
+void cmd_echo(int argc, char *argv[]) {
+    int i = 1;
+    int nova_linha = 1;
+    int fd = STDOUT_FILENO;
+    int fechar_fd = 0;
+
+    if (argc > 1 && strcmp(argv[1], "-n") == 0) {
+        nova_linha = 0;
+        i = 2;
+    }
+
+    for (int j = 0; j < argc; j++) {
+        if (strcmp(argv[j], ">") == 0) {
+            if (j + 1 < argc) {
+                fd = open(argv[j + 1], O_CREAT | O_WRONLY | O_TRUNC, 0644);
+                if (fd == -1) {
+                    perror("mini-shell: echo (arquivo)");
+                    return;
+                }
+                fechar_fd = 1;
+                argc = j;
+            } else {
+                printf("mini-shell: erro de sintaxe '>'\n");
+                return;
+            }
+            break;
+        }
+    }
+
+    for (; i < argc; i++) {
+        write(fd, argv[i], strlen(argv[i]));
+        if (i < argc - 1) write(fd, " ", 1);
+    }
+
+    if (nova_linha) write(fd, "\n", 1);
+
+    if (fechar_fd) close(fd);
+}
 
 // Syscalls: open, read, write, close
 void cmd_cat(int argc, char *argv[]) {
@@ -285,54 +341,23 @@ void cmd_sort(int argc, char *argv[]) {
     }
 }
 
-// Lib Functions: printf, strcmp
-void cmd_echo(int argc, char *argv[]) {
-    int i = 1;
-    int nova_linha = 1; // Por padrão, imprime \n no final
-
-    // Verifica se o primeiro argumento é a flag -n
-    if (argc > 1 && strcmp(argv[1], "-n") == 0) {
-        nova_linha = 0;
-        i = 2; // Começa a imprimir a partir do próximo argumento
-    }
-
-    for (; i < argc; i++) {
-        printf("%s", argv[i]);
-        
-        // Adiciona espaço entre as palavras, mas não após a última
-        if (i < argc - 1) {
-            printf(" ");
-        }
-    }
-
-    if (nova_linha) {
-        printf("\n");
-    }
-}
-
 // --- MAPA DE COMANDOS ---
 
 static const Comando mapa_de_comandos[] = {
-    // Sistema
     { "exit",  cmd_exit,  "Sai do mini-shell" },
     { "pwd",   cmd_pwd,   "Mostra o diretorio atual" },
     { "cd",    cmd_cd,    "Muda de diretorio" },
-    
-    // Gestão de Diretórios
     { "mkdir", cmd_mkdir, "Cria um diretorio" },
     { "rmdir", cmd_rmdir, "Remove diretorio vazio" },
     { "ls",    cmd_ls,    "Lista arquivos" },
-    
-    // Gestão de Arquivos
+    { "touch", cmd_touch, "Cria arquivo vazio" },
     { "cp",    cmd_cp,    "Copia arquivo" },
     { "mv",    cmd_mv,    "Move ou renomeia" },
     { "rm",    cmd_rm,    "Remove arquivo" },
-    
-    // Processamento de Texto
     { "cat",   cmd_cat,   "Mostra conteudo do arquivo" },
     { "grep",  cmd_grep,  "Busca texto em arquivo" },
     { "sort",  cmd_sort,  "Ordena conteudo do arquivo" },
-    { "echo",  cmd_echo,  "Imprime argumentos na tela" },
+    { "echo",  cmd_echo,  "Imprime texto (suporta >)" },
 };
 
 static const int NUM_COMANDOS = sizeof(mapa_de_comandos) / sizeof(Comando);

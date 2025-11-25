@@ -24,6 +24,6 @@ void cmd_cat(int argc, char *argv[]);
 void cmd_grep(int argc, char *argv[]);
 void cmd_sort(int argc, char *argv[]);
 void cmd_echo(int argc, char *argv[]);
-
+void cmd_touch(int argc, char *argv[]);
 
 #endif
