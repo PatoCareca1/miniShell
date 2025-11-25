@@ -285,6 +285,31 @@ void cmd_sort(int argc, char *argv[]) {
     }
 }
 
+// Lib Functions: printf, strcmp
+void cmd_echo(int argc, char *argv[]) {
+    int i = 1;
+    int nova_linha = 1; // Por padrão, imprime \n no final
+
+    // Verifica se o primeiro argumento é a flag -n
+    if (argc > 1 && strcmp(argv[1], "-n") == 0) {
+        nova_linha = 0;
+        i = 2; // Começa a imprimir a partir do próximo argumento
+    }
+
+    for (; i < argc; i++) {
+        printf("%s", argv[i]);
+        
+        // Adiciona espaço entre as palavras, mas não após a última
+        if (i < argc - 1) {
+            printf(" ");
+        }
+    }
+
+    if (nova_linha) {
+        printf("\n");
+    }
+}
+
 // --- MAPA DE COMANDOS ---
 
 static const Comando mapa_de_comandos[] = {
@@ -307,6 +332,7 @@ static const Comando mapa_de_comandos[] = {
     { "cat",   cmd_cat,   "Mostra conteudo do arquivo" },
     { "grep",  cmd_grep,  "Busca texto em arquivo" },
     { "sort",  cmd_sort,  "Ordena conteudo do arquivo" },
+    { "echo",  cmd_echo,  "Imprime argumentos na tela" },
 };
 
 static const int NUM_COMANDOS = sizeof(mapa_de_comandos) / sizeof(Comando);
