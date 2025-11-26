@@ -137,21 +137,21 @@ Experimente estas sequências para testar as capacidades do shell:
 
 **1. Criar ficheiros com conteúdo (Redirecionamento):**
 
-```bash
+```
 mini-shell> echo Lista de Compras: > lista.txt
 mini-shell> echo -n Pao > item1.txt
 ```
 
 **2. Usar caracteres de escape (Quebra de linha):**
 
-```bash
+```
 mini-shell> echo Arroz\nFeijao\nMacarrao > comida.txt
 mini-shell> cat comida.txt
 ```
 
 **3. Manipulação e Listagem:**
 
-```bash
+```
 mini-shell> mkdir backup
 mini-shell> cp comida.txt backup/comida_bkp.txt
 mini-shell> ls -l
