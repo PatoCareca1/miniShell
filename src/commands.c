@@ -10,6 +10,7 @@
 #include <grp.h>        // getgrgid
 #include <fcntl.h>      // open, O_RDONLY, etc
 #include "commands.h"
+#include "ui.h"
 
 // --- COMANDOS DE SISTEMA E NAVEGAÇÃO ---
 
@@ -341,23 +342,54 @@ void cmd_sort(int argc, char *argv[]) {
     }
 }
 
-// --- MAPA DE COMANDOS ---
+// --- NOVO COMANDO: HELP ---
+
+// Declaração antecipada para o cmd_help poder usar o mapa
+static const Comando mapa_de_comandos[];
+static const int NUM_COMANDOS;
+
+void cmd_help(int argc, char *argv[]) {
+    printf("\n" COR_BOLD "LISTA DE COMANDOS DISPONIVEIS:" COR_RESET "\n");
+    printf("------------------------------------------------------------\n");
+    printf("%-10s | %-25s | %s\n", "COMANDO", "USO / FLAGS", "DESCRIÇÃO");
+    printf("------------------------------------------------------------\n");
+
+    for (int i = 0; i < NUM_COMANDOS; i++) {
+        printf(COR_VERDE "%-10s" COR_RESET " | %-25s | %s\n", 
+               mapa_de_comandos[i].nome, 
+               mapa_de_comandos[i].uso, 
+               mapa_de_comandos[i].descricao);
+    }
+    printf("------------------------------------------------------------\n\n");
+}
+
+// --- MAPA DE COMANDOS ATUALIZADO ---
 
 static const Comando mapa_de_comandos[] = {
-    { "exit",  cmd_exit,  "Sai do mini-shell" },
-    { "pwd",   cmd_pwd,   "Mostra o diretorio atual" },
-    { "cd",    cmd_cd,    "Muda de diretorio" },
-    { "mkdir", cmd_mkdir, "Cria um diretorio" },
-    { "rmdir", cmd_rmdir, "Remove diretorio vazio" },
-    { "ls",    cmd_ls,    "Lista arquivos" },
-    { "touch", cmd_touch, "Cria arquivo vazio" },
-    { "cp",    cmd_cp,    "Copia arquivo" },
-    { "mv",    cmd_mv,    "Move ou renomeia" },
-    { "rm",    cmd_rm,    "Remove arquivo" },
-    { "cat",   cmd_cat,   "Mostra conteudo do arquivo" },
-    { "grep",  cmd_grep,  "Busca texto em arquivo" },
-    { "sort",  cmd_sort,  "Ordena conteudo do arquivo" },
-    { "echo",  cmd_echo,  "Imprime texto (suporta >)" },
+    // Sistema
+    { "help",  cmd_help,  "Lista comandos",      "help" },
+    { "exit",  cmd_exit,  "Sai do shell",        "exit" },
+    { "pwd",   cmd_pwd,   "Diretorio atual",     "pwd" },
+    
+    // Navegação
+    { "cd",    cmd_cd,    "Muda diretorio",      "cd <caminho>" },
+    
+    // Diretórios
+    { "mkdir", cmd_mkdir, "Cria diretorio",      "mkdir <nome>" },
+    { "rmdir", cmd_rmdir, "Remove dir vazio",    "rmdir <nome>" },
+    { "ls",    cmd_ls,    "Lista conteudo",      "ls [-a] [-l]" },
+    
+    // Arquivos
+    { "touch", cmd_touch, "Cria arquivo vazio",  "touch <arquivo>" },
+    { "cp",    cmd_cp,    "Copia arquivo",       "cp <origem> <dest>" },
+    { "mv",    cmd_mv,    "Move/Renomeia",       "mv <origem> <dest>" },
+    { "rm",    cmd_rm,    "Remove arquivo",      "rm <arquivo>" },
+    
+    // Texto
+    { "cat",   cmd_cat,   "Mostra conteudo",     "cat <arquivo>" },
+    { "grep",  cmd_grep,  "Busca texto",         "grep <termo> <arq>" },
+    { "sort",  cmd_sort,  "Ordena linhas",       "sort <arquivo>" },
+    { "echo",  cmd_echo,  "Imprime texto",       "echo [-n] <txt> [> arq]" },
 };
 
 static const int NUM_COMANDOS = sizeof(mapa_de_comandos) / sizeof(Comando);
@@ -366,10 +398,10 @@ void comandos_executar(int argc, char *argv[]) {
     if (argc == 0) return;
 
     for (int i = 0; i < NUM_COMANDOS; i++) {
-        if (strcmp(argv[0], mapa_de_comandos[i].nome) == 0) {
+        if (strcmp(argv[0], mapa_de_comandos[i].nome) == 0) {   
             mapa_de_comandos[i].funcao(argc, argv);
             return;
         }
     }
-    printf("Comando desconhecido: '%s'.\n", argv[0]);
+    printf(COR_VERMELHO "✖ Comando desconhecido: '%s'. Digite 'help'." COR_RESET "\n", argv[0]);
 }

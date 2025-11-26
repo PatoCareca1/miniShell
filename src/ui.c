@@ -2,10 +2,10 @@
 #include "ui.h"
 
 void ui_mostrar_boas_vindas(void) {
-    printf("========================================\n");
+    printf(COR_CYAN "========================================\n");
     printf("==                                    ==\n");
-    printf("==       BEM-VINDO AO MINISHELL       ==\n");
+    printf("==   " COR_AMARELO "MINI-SHELL - SISTEMAS OP." COR_CYAN "      ==\n");
     printf("==                                    ==\n");
-    printf("========================================\n");
-    printf("Digite 'ajuda' para ver os comandos.\n\n");
+    printf("========================================" COR_RESET "\n");
+    printf("Digite " COR_VERDE "help" COR_RESET " para ver os comandos.\n\n");
 }
