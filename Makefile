@@ -48,6 +48,6 @@ clean:
 	@echo "Limpando binários..."
 	rm -f $(TARGET)
 	rm -rf $(OBJ_DIR)
-	@echo "Removendo ambiente de teste..."
-	rm -rf $(SANDBOX_DIR)
+	@echo "Removendo ambiente de teste (sandbox)..."
+	rm -rf sandbox
 	@echo "✨ Limpeza concluída!"

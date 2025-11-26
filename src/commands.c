@@ -222,18 +222,34 @@ void cmd_touch(int argc, char *argv[]) {
 
 // --- PROCESSAMENTO DE TEXTO ---
 
-// Syscalls: write, open, close (Suporta flag -n e redirecionamento >)
+// Helper para interpretar \n na string
+void escrever_interpretado(int fd, const char *str) {
+    while (*str) {
+        // Se encontrar '\' seguido de 'n', imprime nova linha
+        if (*str == '\\' && *(str + 1) == 'n') {
+            write(fd, "\n", 1);
+            str += 2; // Pula o '\' e o 'n'
+        } else {
+            write(fd, str, 1);
+            str++;
+        }
+    }
+}
+
+// Syscalls: write, open, close (Suporta flag -n, redirecionamento > e escape \n)
 void cmd_echo(int argc, char *argv[]) {
     int i = 1;
     int nova_linha = 1;
     int fd = STDOUT_FILENO;
     int fechar_fd = 0;
 
+    // 1. Verifica flag -n
     if (argc > 1 && strcmp(argv[1], "-n") == 0) {
         nova_linha = 0;
         i = 2;
     }
 
+    // 2. Procura pelo símbolo ">"
     for (int j = 0; j < argc; j++) {
         if (strcmp(argv[j], ">") == 0) {
             if (j + 1 < argc) {
@@ -243,7 +259,7 @@ void cmd_echo(int argc, char *argv[]) {
                     return;
                 }
                 fechar_fd = 1;
-                argc = j;
+                argc = j; // Corta os argumentos antes do >
             } else {
                 printf("mini-shell: erro de sintaxe '>'\n");
                 return;
@@ -252,8 +268,10 @@ void cmd_echo(int argc, char *argv[]) {
         }
     }
 
+    // 3. Imprime interpretando os caracteres especiais
     for (; i < argc; i++) {
-        write(fd, argv[i], strlen(argv[i]));
+        escrever_interpretado(fd, argv[i]);
+        
         if (i < argc - 1) write(fd, " ", 1);
     }
 
