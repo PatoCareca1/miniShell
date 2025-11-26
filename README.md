@@ -4,169 +4,159 @@
 ![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-Um interpretador de comandos (Shell) modular, escalável e leve, desenvolvido em linguagem C. Este projeto explora o funcionamento interno de sistemas operativos UNIX, interagindo diretamente com o Kernel através de **System Calls**.
+Um interpretador de comandos (Shell) modular, escalável e seguro, desenvolvido em linguagem C. Este projeto simula um ambiente UNIX completo, interagindo diretamente com o Kernel através de **System Calls** e implementando um sistema de **Sandbox** para execução segura.
 
-> **Nota:** Este projeto foi desenvolvido no âmbito da disciplina de **Sistemas Operacionais**.
+> **Nota:** Desenvolvido para a disciplina de **Sistemas Operacionais**.
 
 ---
 
 ## 📋 Índice
 
-- [Sobre o Projeto](#-sobre-o-projeto)
-- [Arquitetura e Design](#-arquitetura-e-design)
-- [Estrutura de Ficheiros](#-estrutura-de-ficheiros)
+- [Destaques Técnicos](#-destaques-técnicos)
+- [Arquitetura e Sandbox](#-arquitetura-e-sandbox)
+- [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Funcionalidades e Syscalls](#-funcionalidades-e-syscalls)
-- [Como Rodar](#-como-rodar)
-- [Como Contribuir](#-como-contribuir)
+- [Guia de Instalação e Uso](#-guia-de-instalação-e-uso)
+- [Exemplos de Comandos](#-exemplos-de-comandos)
 
 ---
 
-## 🚀 Sobre o Projeto
+## 🚀 Destaques Técnicos
 
-O objetivo deste Mini-Shell é simular um ambiente de linha de comando onde o utilizador pode executar operações de sistema de ficheiros, navegação e manipulação de texto.
+Este projeto vai além de um shell básico, implementando conceitos avançados de sistemas:
 
-Ao contrário de *shells* que apenas chamam outros programas (usando `system()` ou `exec`), este projeto **reimplementa** a lógica dos comandos internamente usando a API padrão do POSIX e C.
-
-### Destaques
-* **Zero Dependências Externas:** Usa apenas bibliotecas padrão do C e chamadas de sistema Linux.
-* **Modularidade:** Adicionar um novo comando não exige alteração na lógica principal (`main.c`).
-* **Alta Performance:** Manipulação direta de descritores de ficheiros e memória.
-
----
-
-## 🏗 Arquitetura e Design
-
-O diferencial deste projeto é a sua arquitetura baseada em **Data-Driven Programming** (Programação Orientada a Dados).
-
-### O Problema do "Código Esparguete"
-Em implementações tradicionais para iniciantes, é comum ver cadeias gigantes de `if/else if` dentro da função `main` para decidir qual comando executar. Isso torna o código difícil de ler e impossível de escalar.
-
-### A Nossa Solução: Tabela de Comandos
-Nós desacoplamos a lógica. O "motor" do shell não conhece os comandos; ele apenas consulta um mapa.
-
-1.  **O Mapa (`commands.c`):** Existe um array de estruturas que mapeia uma *string* (ex: "ls") a um *ponteiro de função* (ex: `&cmd_ls`).
-2.  **O Parser:** O shell lê a linha, quebra em tokens (argumentos) e procura a chave no mapa.
-3.  **Execução:** Se encontrada, a função correspondente é disparada automaticamente.
-
-Isso permite adicionar novos comandos apenas registando-os na tabela, mantendo o `main.c` limpo e focado apenas no ciclo de vida da aplicação (Loop -> Read -> Eval -> Print).
+* **🛡️ Ambiente Sandbox Automático:** Ao iniciar, o shell cria e isola a execução dentro de um diretório `sandbox/`. Todas as operações de ficheiros (criar, apagar, mover) ficam contidas, garantindo segurança e limpeza fácil.
+* **🎨 Feedback Visual (UI):** Interface colorida usando códigos ANSI para feedback imediato (Verde para sucesso, Vermelho para erros).
+* **🔀 Redirecionamento de I/O:** O comando `echo` implementa um parser próprio que suporta redirecionamento de saída (`>`) para criar ficheiros.
+* **📝 Interpretação de Escape:** Suporte a caracteres especiais como quebra de linha (`\n`) dentro de strings.
+* **🏗️ Arquitetura Orientada a Dados:** O "motor" do shell é desacoplado da lógica dos comandos, permitindo escalabilidade infinita através de uma tabela de ponteiros de função.
 
 ---
 
-## 📂 Estrutura de Ficheiros
+## 🏗 Arquitetura e Sandbox
 
-O projeto segue uma organização profissional de diretórios para separar interfaces de implementações:
+### O Conceito de Sandbox
+Para evitar poluir o diretório do projeto ou o sistema do utilizador, o `main.c` executa a seguinte rotina de inicialização:
+1.  Verifica a existência do diretório `sandbox/`.
+2.  Cria-o via `mkdir()` se não existir.
+3.  Muda o diretório de trabalho do processo (`chdir()`) para dentro dele.
+
+### O Ciclo de Vida (REPL)
+1.  **Read:** Lê o input do utilizador (`fgets`).
+2.  **Parse:** Quebra a string em tokens e interpreta caracteres de escape.
+3.  **Eval:** Consulta a Tabela de Comandos para encontrar a função correspondente.
+4.  **Print:** Executa a função (usando `syscalls`) e exibe o resultado colorido.
+
+---
+
+## 📂 Estrutura do Projeto
 
 ```plaintext
 miniShell/
-├── Makefile            # Automação de compilação (Build System)
-├── include/            # (Headers) Contratos e definições de tipos
+├── Makefile            # Automação de build e gestão de ambiente
+├── include/            # Contratos (Headers)
 │   ├── commands.h      # Definição da struct Comando e protótipos
-│   └── ui.h            # Interface de utilizador (ASCII art, etc)
-├── src/                # (Source) Implementação lógica
-│   ├── main.c          # Ponto de entrada e ciclo principal (REPL)
-│   ├── commands.c      # Implementação de todos os comandos e do mapa
-│   └── ui.c            # Implementação visual
-└── obj/                # (Gerado) Ficheiros objeto compilados (.o)
+│   └── ui.h            # Definições de cores ANSI e interface
+├── src/                # Implementação
+│   ├── main.c          # Inicialização do Sandbox e Loop Principal
+│   ├── commands.c      # Implementação lógica de todos os comandos
+│   └── ui.c            # Funções visuais
+└── sandbox/            # (Gerado Automaticamente) Onde os arquivos são criados
 ````
 
 -----
 
 ## 🛠 Funcionalidades e Syscalls
 
-Abaixo, a lista de comandos implementados e as principais **Chamadas de Sistema (Syscalls)** ou funções de biblioteca utilizadas para operar diretamente no SO.
+Abaixo, a lista de comandos implementados e as chamadas de sistema (**System Calls**) utilizadas.
 
-### 🔹 Navegação e Sistema
+### 🔹 Sistema e Ajuda
 
-| Comando | Descrição | Syscalls / Libs Principais |
+| Comando | Descrição | Implementação / Syscalls |
 | :--- | :--- | :--- |
+| `help` | Lista todos os comandos e flags | Tabela de Structs + Cores ANSI |
 | `exit` | Encerra o shell | `exit()` |
 | `pwd` | Exibe diretório atual | `getcwd()` |
-| `cd` | Muda de diretório | `chdir()` |
 
-### 🔹 Gestão de Diretórios
+### 🔹 Gestão de Diretórios e Ficheiros
 
-| Comando | Descrição | Syscalls / Libs Principais |
+| Comando | Descrição | Implementação / Syscalls |
 | :--- | :--- | :--- |
-| `mkdir` | Cria um diretório | `mkdir()` (com permissão 0755) |
+| `mkdir` | Cria um diretório | `mkdir()` |
 | `rmdir` | Remove diretório vazio | `rmdir()` |
-| `ls` | Lista arquivos (`-a`, `-l`) | `opendir()`, `readdir()`, `stat()`, `closedir()` |
-
-### 🔹 Manipulação de Ficheiros
-
-| Comando | Descrição | Syscalls / Libs Principais |
-| :--- | :--- | :--- |
-| `cp` | Copia ficheiros | `open()`, `read()`, `write()`, `close()` |
-| `mv` | Move ou Renomeia | `rename()` |
+| `cd` | Navega entre pastas | `chdir()` |
+| `ls` | Lista conteúdo (`-a`, `-l`) | `opendir()`, `readdir()`, `stat()`, `closedir()` |
+| `touch` | Cria arquivo vazio | `open(O_CREAT)`, `close()` |
 | `rm` | Remove ficheiro | `unlink()` |
+| `cp` | Copia ficheiro (byte-a-byte) | `open()`, `read()`, `write()`, `close()` |
+| `mv` | Move ou Renomeia | `rename()` |
 
-### 🔹 Processamento de Texto
+### 🔹 Processamento de Texto Avançado
 
-| Comando | Descrição | Syscalls / Libs Principais |
+| Comando | Descrição | Detalhes Técnicos |
 | :--- | :--- | :--- |
-| `cat` | Exibe conteúdo | `open()`, `read()`, `write(STDOUT)` |
-| `grep` | Busca texto em ficheiro | `fopen()`, `fgets()`, `strstr()` |
-| `sort` | Ordena linhas (RAM) | `fopen()`, `fgets()`, `qsort()` |
+| `cat` | Exibe conteúdo | `read()`, `write(STDOUT)` |
+| `grep` | Busca termo em arquivo | `fopen()`, `fgets()`, `strstr()` |
+| `sort` | Ordena linhas (RAM) | `qsort()`, `strcmp()` |
+| `echo` | Imprime texto | Suporta flag `-n`, escape `\n` e operador `>` |
 
 -----
 
-## 💻 Como Rodar
+## 💻 Guia de Instalação e Uso
 
 ### Pré-requisitos
 
-  * Sistema Operativo: **Linux** (ou WSL no Windows, macOS).
-  * Compilador: **GCC**.
-  * Ferramenta: **Make**.
+  * **Linux** (ou WSL/macOS).
+  * **GCC** e **Make**.
 
-### Passo a Passo
+### Como Rodar
 
-1.  **Clone o repositório** (ou baixe os ficheiros):
+1.  **Clone e compile:**
 
-    ```bash
-    git clone [https://github.com/teu-usuario/mini-shell.git](https://github.com/teu-usuario/mini-shell.git)
+    ```
+    git clone https://github.com/PatoCareca1/miniShell.git
     cd mini-shell
+
+2.  **Inicie o Ambiente (Build + Run):**
+    O comando abaixo compila o projeto, cria a pasta `sandbox` e inicia o shell dentro dela.
+
     ```
+    make run
 
-2.  **Compile o projeto**:
-    Utilizamos um `Makefile` inteligente que compila apenas o necessário.
+3.  **Limpeza Total:**
+    Para remover os binários compilados E apagar todo o conteúdo criado na sandbox:
 
-    ```bash
-    make
     ```
-
-    *Se quiser limpar a compilação anterior, use `make clean`.*
-
-3.  **Execute o Shell**:
-
-    ```bash
-    ./miniShell
-    ```
-
-4.  **Exemplo de Uso**:
-
-    ```bash
-    mini-shell> mkdir teste
-    mini-shell> cd teste
-    mini-shell> ls -l
-    mini-shell> exit
-    ```
+    make clean
 
 -----
 
-## 🤝 Como Contribuir
+## 🧪 Exemplos de Comandos
 
-Este projeto foi desenhado para ser **escalável**. Queres adicionar um comando novo (ex: `date` ou `echo`)?
+Experimente estas sequências para testar as capacidades do shell:
 
-1.  Abra `src/commands.c`.
-2.  Crie a função `void cmd_novo(int argc, char *argv[]) { ... }`.
-3.  Adicione a linha no array `mapa_de_comandos`:
-    ```c
-    { "novo", cmd_novo, "Descrição do comando" },
-    ```
-4.  Recompile com `make`.
+**1. Criar ficheiros com conteúdo (Redirecionamento):**
 
-Pronto\! O sistema reconhece o novo comando automaticamente sem mexer em mais nada.
+```bash
+mini-shell> echo Lista de Compras: > lista.txt
+mini-shell> echo -n Pao > item1.txt
+```
+
+**2. Usar caracteres de escape (Quebra de linha):**
+
+```bash
+mini-shell> echo Arroz\nFeijao\nMacarrao > comida.txt
+mini-shell> cat comida.txt
+```
+
+**3. Manipulação e Listagem:**
+
+```bash
+mini-shell> mkdir backup
+mini-shell> cp comida.txt backup/comida_bkp.txt
+mini-shell> ls -l
+```
 
 -----
 
-**Desenvolvido por Lucas Daniel Costa Souza**
-*Trabalho Prático - Sistemas Operacionais - 2025*
+**Desenvolvido por Lucas Daniel e Juscelino Kubitschek**
