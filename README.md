@@ -159,4 +159,4 @@ mini-shell> ls -l
 
 -----
 
-**Desenvolvido por Lucas Daniel e Juscelino Kubitschek**
+**Desenvolvido por Lucas Daniel**
